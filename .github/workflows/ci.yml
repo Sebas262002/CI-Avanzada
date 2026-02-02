@@ -10,29 +10,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 10
 
     steps:
-      - name: Clonar el repositorio
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: configurar Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Show system info
+        run: |
+          echo "Java version:"
+          java -version
+          echo "Gradle version:"
+          ./gradlew --version
+
+      - name: Build and test
+        run: ./gradlew clean build --no-daemon --parallel
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Dar permisos a gradlew
-        run: chmod +x gradlew
-
-      - name: Ejecutar pruebas y construir
-        run: ./gradlew build
+          name: test-results
+          path: build/reports/tests/
